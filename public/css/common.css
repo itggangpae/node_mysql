@@ -1,0 +1,19 @@
+a{
+    text-decoration: none;
+}
+
+div.body{
+	overflow-y: auto;
+    	scrollbar-face-color: #C9BFED;
+    	scrollbar-shadow-color: #EDEDED;
+	margin-top: 50px;
+	margin-bottom: 50px;
+}
+
+tr.header{
+    background: #C9BFED;
+}
+
+tr.record{
+    background: #EDEDED;
+}

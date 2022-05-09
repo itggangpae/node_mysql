@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>NODE_MySQL</title>
+        <link rel='stylesheet' href="/css/common.css" />
+    </head>
+    <body>
+        <h1>MySQL</h1>
+        <a href="#" id="allbtn">데이터 전체 가져오기</a>
+        <a href="#" id="listbtn">데이터 일부분 가져오기</a>
+        <a href="#" id="insertbtn">데이터 삽입</a>
+        <div id='content'></div>
+        <div id='updatearea'></div>
+    </body>
+
+    <script>
+        var content = document.getElementById('content');
+        var updatearea = document.getElementById("updatearea");
+
+        function all(){
+            var request;
+            request = new XMLHttpRequest();
+            request.open('GET', '/item/all');
+            request.send('');
+
+            request.addEventListener('load', function(){
+                updatearea.innerHTML = "";
+                var data = JSON.parse(request.responseText);
+                var display = "<div align='center' class='body'>";
+                display += "<h2>상품 목록 화면</h2>";
+                display += "<table border='1'>";
+                display += "<tr><td colspan='3' align='right'>전체 데이터 개수:" + data.count + "</td></tr>"
+                display += "<tr class='header'>"
+                display += "<th align='center' width='80'>상품ID</th>"
+                display += "<th align='center' width='320'>상품명</th>"
+                display += "<th align='center' width='100'>가격</th>"
+                display += "</tr>"
+                
+                for(var idx in data.list){
+                    var item = data.list[idx];
+
+                    display += "<tr class='record'>";
+                    display += "<td align='center'>" + item.itemid + "</td>";
+                    display += "<td align='left'>" + item.itemname + "</td>";
+                    display += "<td align='right'>" + item.price + "원</td>";
+                    display += "</tr>"
+                }
+		
+                display += "</table>";
+                display += "</div>"
+                
+                content.innerHTML = display;
+            });
+        }
+
+        document.getElementById('allbtn').addEventListener('click', function(e){
+            e.preventDefault();
+            all();
+           
+        });
+
+
+        var pageno = 1;
+        var count = 5;
+
+        document.getElementById('listbtn').addEventListener('click', function(e){
+            e.preventDefault();
+            pageno = 1;
+            count = 5;
+            
+            var request;
+            request = new XMLHttpRequest();
+            request.open('GET', '/item/list?' + 'pageno=' + pageno + '&count=' + count);
+            request.send('');
+
+            request.addEventListener('load', function(){
+                updatearea.innerHTML = "";
+                var data = JSON.parse(request.responseText);
+                var display = "<div align='center' class='body'>";
+                display += "<h2>상품 목록 화면</h2>";
+                display += "<table border='1' id='tbldata'>";
+                display += "<tr><td colspan='3' align='right'>전체 데이터 개수:" + data.count + "</td></tr>"
+                display += "<tr class='header'>"
+                display += "<th align='center' width='80'>상품ID</th>"
+                display += "<th align='center' width='320'>상품명</th>";
+                display += "<th align='center' width='100'>가격</th>"
+                display += "</tr>"
+
+                for(var idx in data.list){
+                    var item = data.list[idx];
+
+                    display += "<tr class='record'>";
+                    display += "<td align='center'>" + item.itemid + "</td>";
+                    display += "<td align='left'><a href='#' id='item" + item.itemid + "'>" + item.itemname + "</a></td>";
+                    display += "<td align='right'>" + item.price + "원</td>";
+                    display += "</tr>"
+                }
+
+                display += "</table>";
+                display += "</div>"
+                
+                content.innerHTML = display;
+
+                display = "";
+                if((pageno-1) * count < data.count){
+                    display += "<table align='center' width='500' id='tblbtn'>";
+                    display += "<tr id='tblbtn'>";
+                    display += "<td align='center' colspan='3'><span id='addbtn'>더보기</span></td>";
+                    display += "</tr></table>"
+                }
+                content.innerHTML += display;
+
+                var addbtn = document.getElementById('addbtn');
+                if(addbtn != undefined){
+                    addbtn.addEventListener('click', (e) => {
+                        pageno = pageno + 1;
+                        var request;
+                        request = new XMLHttpRequest();
+                        request.open('GET', '/item/list?' + 'pageno=' + pageno + '&count=' + count);
+                        request.send('');
+                        
+                        if((pageno) * count >= data.count){
+                            pageno = pageno -1;
+                            document.getElementById("tblbtn").remove();
+                        }
+
+                        request.addEventListener('load', (e) => {
+                            var data = JSON.parse(request.responseText);
+                            var display = "";
+
+                            const table = document.getElementById('tbldata');
+
+                            for(var idx in data.list){
+                                var item = data.list[idx];
+
+                                display += "<tr class='record'>";
+                                display += "<td align='center'>" + item.itemid + "</td>";
+                                display += "<td align='left'><a href='#' id='item" + item.itemid + "'>" + item.itemname + "</a></td>";
+                                display += "<td align='right'>" + item.price + "원</td>";
+                                display += "</tr>"
+                            }
+                            table.innerHTML += display;
+
+                        });
+                    });
+                };
+            });
+        });
+
+        document.getElementById('content').addEventListener('click', (e) => {
+            if(e.target.id.startsWith("item")){
+                var itemid = e.target.id.substring(4).trim();
+                var request;
+                request = new XMLHttpRequest();
+                request.open('GET', '/item/detail?' + 'itemid=' + itemid);
+                request.send('');
+
+                request.addEventListener('load', () => {
+                    var data = JSON.parse(request.responseText);
+                    var display = "";
+                    display += "<div align='center' class='body'>";
+                    display += "<h2>상품 상세 화면</h2>";
+                
+                    if(data.result === true){
+                        var item = data.item;
+                        display += "<table>";
+                        display += "<tr><td><a href='/img/" + item.pictureurl + "'>" + "<img src='/img/" + item.pictureurl + "'></a></td>";
+                        display += "<td align='center'><table><tr height='50'><td width='80'>상품명</td>";
+                        display += "<td width='160'>" + item.itemname + "</td>";
+                        display += "</tr><tr height='50'><td width='80'>가격</td>";
+                        display += "<td width='160'>" + item.price + "원</td></tr>";
+                        display += "<tr height='50'><td width='80'>비고</td>";
+                        display += "<td width='160'>" + item.description +"</td></tr>";
+                        display += "<tr><td colspan='2' align='center' width='240'>";
+                        display += "<a href='#' id='mainbtn'>■ 목록으로돌아가기</a></td></tr>";
+                        display += "<tr><td colspan='2' align='center' width='240'>";
+                        display += "<a href='#' id='deletebtn'>■ 데이터 삭제</a>";
+                        display += "<a href='#' id='updatebtn'>■ 데이터 수정</a></td></tr>";
+                        display += "</table></td></tr>";
+                        display +="</table>"
+                    }else{
+                        display += "<p>데이터가 존재하지 않습니다.</p>";
+                    }
+                    
+                    content.innerHTML = display;
+                    updatearea.innerHTML = "";
+
+                    var mainbtn = document.getElementById('mainbtn');
+                    if(mainbtn != undefined){
+                        mainbtn.addEventListener('click', (e) => {
+                            document.getElementById('listbtn').click();
+                        })
+                    }
+
+                    var updatebtn = document.getElementById('updatebtn');
+                    if(updatebtn != undefined){
+                        updatebtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation()
+                            request = new XMLHttpRequest();
+                            request.open('GET', '/item/update');
+                            request.send('');
+
+                            request.addEventListener('load', () => {
+                                content.innerHTML = "";
+                                updatearea.innerHTML = request.responseText;
+                                var item = data.item;
+
+                                document.getElementById("itemid").value = item.itemid;
+                                document.getElementById("itemid").readOnly = true;
+
+                                document.getElementById("itemname").value = item.itemname;
+
+                                document.getElementById("price").value = item.price;
+
+                                document.getElementById("description").value = item.description;
+
+                                document.getElementById("oldpictureurl").value = item.pictureurl;
+                                document.getElementById("picture").src = "/img/" + item.pictureurl;
+                                
+                                
+                                var f = document.getElementById("updateform");
+                                if(f != undefined){
+                                    f.addEventListener('submit', (e) => {
+                                        e.preventDefault();
+                                        const formData = new FormData(document.getElementById("updateform"));
+
+                                        var xhr = new XMLHttpRequest();
+                                        xhr.open("POST" , "/item/update" , true);
+                                        xhr.send(formData);
+                                        
+                                        xhr.addEventListener('load', (e) => {
+                                            var data = JSON.parse(xhr.responseText);
+                                            if(data.result == true){
+                                                document.getElementById("listbtn").click();
+                                                updatearea.innerHTML = '';
+                                            }else{
+                                                alert("수정에 실패")
+                                            }
+                                        });
+                                    })
+                                }
+
+                            });
+                        });
+                    }
+
+                    var deletebtn = document.getElementById('deletebtn');
+                    if(deletebtn != undefined){
+                        deletebtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            request = new XMLHttpRequest();
+                            request.open('POST', '/item/delete', true);
+                            var params = 'itemid=' + data.item.itemid;
+                            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                            request.send(params);
+
+                            request.addEventListener('load', () => {
+                                var data = JSON.parse(request.responseText);
+                                if(data.result == true){
+                                    document.getElementById("listbtn").click();
+                                    updatearea.innerHTML = '';
+                                    alert("삭제 성공");
+                                }else{
+                                    alert("삭제 실패");
+                                }
+                            });
+                        })
+                    } 
+
+                });
+            }
+        })
+
+        
+        document.getElementById('insertbtn').addEventListener('click', function(e){
+            e.preventDefault();
+            e.stopPropagation()
+            request = new XMLHttpRequest();
+            request.open('GET', '/item/insert');
+            request.send('');
+
+            request.addEventListener('load', () => {
+                content.innerHTML = "";
+                updatearea.innerHTML = request.responseText;
+                var f = document.getElementById("insertform");
+                if(f != undefined){
+                    f.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(document.getElementById("insertform"));
+
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("POST" , "/item/insert" , true);
+                        xhr.send(formData);
+                        
+                        xhr.addEventListener('load', (e) => {
+                            var data = JSON.parse(xhr.responseText);
+                            if(data.result == true){
+                                document.getElementById("listbtn").click();
+                                updatearea.innerHTML = '';
+                            }else{
+                                alert("삽입에 실패")
+                            }
+                        });
+                    })
+                }
+            })
+        });
+
+    </script>
+</html>
